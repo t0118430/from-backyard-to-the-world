@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import sharp from 'sharp';
-import fs from 'fs';
 import path from 'path';
 import Post from '../models/Post';
+import { PostNotFoundException } from '../exceptions/PostNotFoundException';
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -56,7 +56,7 @@ router.get('/post/:id', async (req: Request, res: Response) => {
 	try {		
 		const post = await Post.findByPk(req.params.id);
 		if(!post) {
-			return res.status(404).json({ error: 'Post not found' });
+			throw new PostNotFoundException();
 		}
 		
 		res.json({
@@ -66,8 +66,12 @@ router.get('/post/:id', async (req: Request, res: Response) => {
 			imageUrl: post.imageUrl,
 		});
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-		res.status(500).json({ error: errorMessage });
+		if (error instanceof PostNotFoundException) {
+			res.status(404).json({ error: 'Post not found' });
+		} else {
+			const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+			res.status(500).json({ error: errorMessage });
+		}
 	}
 });
 
