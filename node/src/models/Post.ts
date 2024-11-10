@@ -1,42 +1,36 @@
-import { DataTypes, Model } from 'sequelize';
-import sequelize from '../config';
-
-class Post extends Model {
-  public id!: number;
-  public title!: string;
-  public content!: string;
-  public imageUrl?: string;
-  public videoUrl?: string;
-}
-
-Post.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    title: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    content: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-    imageUrl: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    videoUrl: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-  },
-  {
-    sequelize,
-    tableName: 'posts',
+class Post {
+    title: string;
+    content: string;
+    images: AttractionImage[];
+  
+    constructor(title: string, content: string, images: AttractionImage[]) {
+      this.title = title;
+      this.content = content;
+      this.images = images;
+    }
   }
-);
-
-export default Post;
+  
+  class PostBuilder {
+    private title: string = '';
+    private content: string = '';
+    private images: AttractionImage[] = [];
+  
+    setTitle(title: string): PostBuilder {
+      this.title = title;
+      return this;
+    }
+  
+    setContent(content: string): PostBuilder {
+      this.content = content;
+      return this;
+    }
+  
+    setImages(images: AttractionImage[]): PostBuilder {
+      this.images = images;
+      return this;
+    }
+  
+    build(): Post {
+      return new Post(this.title, this.content, this.images);
+    }
+  }

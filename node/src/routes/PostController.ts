@@ -2,19 +2,26 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import sharp from 'sharp';
 import path from 'path';
-import Post from '../models/Post';
+import { PostEntity } from '../entities/PostEntity';
 import { PostNotFoundException } from '../exceptions/PostNotFoundException';
+import { AppDataSource } from '../config';
+import { Post } from '../models/Post';
+import { AttractionImage } from '../models/AttractionImage';
+
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 const router = Router();
 
-router.post('/', upload.single('image'), async (req: Request, res: Response) => {
+router.post('/', upload.array('image', 10), async (req: Request, res: Response) => {
 	try {		
-		const title = req.body.title;
-		const content = req.body.content;
-		const file = req.file;
-		let imageUrl = null;
+		const { title, content } = req.body;
+		const mainImage = req.files['mainImage'] as Express.Multer.File[];
+		const galleryImages = req.files['gallery'] as Express.Multer.File[];
+
+		if (mainImage) {
+			throw Error('Main image cannot be null.');
+		}
 
 		if (file) {
 			const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -29,8 +36,10 @@ router.post('/', upload.single('image'), async (req: Request, res: Response) => 
 			
 			imageUrl = `/uploads/${outputFileName}`;
 		}
+		
 
-		const newPost = await Post.create({ 
+
+		const newPost =  PostEntity({ 
 			title: title, 
 			content: content,
 			imageUrl: imageUrl
@@ -44,7 +53,7 @@ router.post('/', upload.single('image'), async (req: Request, res: Response) => 
 
 router.get('/', async (req: Request, res: Response) => {
 	try {
-		const posts = await Post.findAll();
+		const posts = await PostEntity.find();
 		res.status(200).json(posts);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -54,7 +63,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.get('/post/:id', async (req: Request, res: Response) => {
 	try {		
-		const post = await Post.findByPk(req.params.id);
+		const post = await PostEntity.findOneBy({ id: Number(req.params.id) });
 		if(!post) {
 			throw new PostNotFoundException();
 		}
@@ -63,7 +72,7 @@ router.get('/post/:id', async (req: Request, res: Response) => {
 			id: post.id,
 			title: post.title,
 			content: post.content,
-			imageUrl: post.imageUrl,
+			images: post.images,
 		});
 	} catch (error) {
 		if (error instanceof PostNotFoundException) {
