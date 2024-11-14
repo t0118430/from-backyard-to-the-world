@@ -13,45 +13,42 @@ export async function createPost(
     mainImage: Express.Multer.File, 
     gallery: Express.Multer.File[]): Promise<PostEntity> {
 
+        console.log(mainImage);
+
         if (!mainImage) {
 			throw Error('Main image cannot be null.');
 		}
-
-		const newPost = new PostBuilder()
-							.setTitle(title)
-							.setContent(content)
-							.build();
-
-        await postRepository.save(newPost);
-
-		const mainImageCompressed = await compressImage(mainImage);
-		
-		const urlMainImage = await uploadImageToFirebase(mainImage.filename, mainImageCompressed);
-		
-		const mainImageEntity = new AttractionImageBuilder()
-									.setUrl(urlMainImage)
-									.setIsMain(true)
-                                    .setPost(newPost)
-									.build();
-
-        await  imageRepository.save(mainImageEntity);
-
-        const galleryImages = await Promise.all(
-            gallery.map(async (image) => {
-                const galleryImageCompress = await compressImage(image);
-                const url = await uploadImageToFirebase(image.originalname, galleryImageCompress);
-
-                const galleryImage = new AttractionImageBuilder()
-                                        .setUrl(url)
-                                        .setPost(newPost)
-                                        .build();
-                return imageRepository.save(galleryImage);
-            })
-        )
         
-        newPost.images = [mainImageEntity, ...galleryImages];
+        try {
+            const newPost = new PostBuilder()
+            .setTitle(title)
+            .setContent(content)
+            .build();
 
-        return newPost;
+            await postRepository.save(newPost);
+
+            const mainImageCompressed = await compressImage(mainImage);
+
+            console.log("before uploadImageToFirebase")
+            const urlMainImage = await uploadImageToFirebase(mainImage.filename, mainImageCompressed);
+
+            const mainImageEntity = new AttractionImageBuilder()
+                                .setUrl(urlMainImage)
+                                .setIsMain(true)
+                                .setPost(newPost)
+                                .build();
+
+            await  imageRepository.save(mainImageEntity);
+
+            const galleryImages = await createGalleryImages(gallery, newPost);
+
+            newPost.images = [mainImageEntity, ...galleryImages];
+
+            return newPost;
+        } catch(error) {
+            const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+            console.log(errorMessage);
+        }
 }
 
 export async function getPosts(): Promise<PostEntity[]> {
@@ -68,6 +65,29 @@ export async function getPostId(postId: number): Promise<PostEntity | null> {
     });
 } 
 
-async function compressImage(image: Express.Multer.File): Promise<Buffer> {
-	return sharp(image.buffer).resize(800).jpeg({quality: 80}).toBuffer();
+async function compressImage(image: Express.Multer.File): Promise<Buffer> {    
+    if (!Buffer.isBuffer(image.buffer)) {
+        throw new Error("Input is not a valid buffer.");
+      }
+    return await sharp(image.buffer).resize(800).jpeg({quality: 70}).toBuffer();
+}
+
+async function createGalleryImages(gallery: Express.Multer.File[], newPost: PostEntity): Promise<AttractionImageEntity[]> {
+
+    if(!gallery || gallery.length === 0) {
+        return [];
+    }
+    console.log("depois do retun null")
+    return await Promise.all(
+        gallery.map(async (image) => {
+        const galleryImageCompress = await compressImage(image);
+        const url = await uploadImageToFirebase(image.originalname, galleryImageCompress);
+
+        const galleryImage = new AttractionImageBuilder()
+                                .setUrl(url)
+                                .setPost(newPost)
+                                .build();
+        return imageRepository.save(galleryImage);
+        })
+    );
 }
