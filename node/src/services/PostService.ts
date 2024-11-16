@@ -1,7 +1,9 @@
 import { AppDataSource } from '../config';
-import { PostEntity, PostBuilder } from '../entities/PostEntity';
-import { AttractionImageEntity, AttractionImageBuilder } from '../entities/AttractionImageEntity';
-import uploadImageToFirebase from '../firebase/FirebaseService'; // Assuming these utility functions exist
+import { PostEntity } from '../entities/PostEntity';
+import { AttractionImageEntity } from '../entities/AttractionImageEntity';
+import { PostBuilder,Post } from '../model/Post';
+import { AttractionImageBuilder,AttractionImage } from '../model/AttractionImage';
+import uploadImageToFirebase from '../firebase/FirebaseService';
 import sharp from 'sharp';
 
 const postRepository = AppDataSource.getRepository(PostEntity);
@@ -11,7 +13,7 @@ export async function createPost(
     title: string, 
     content: string, 
     mainImage: Express.Multer.File, 
-    gallery: Express.Multer.File[]): Promise<PostEntity> {
+    gallery: Express.Multer.File[]): Promise<Post> {
 
         console.log(mainImage);
 
@@ -51,14 +53,14 @@ export async function createPost(
         }
 }
 
-export async function getPosts(): Promise<PostEntity[]> {
+export async function getPosts(): Promise<Post[]> {
     return await postRepository.find({
         relations: ['images'],
         order: { createdAt: 'DESC' }
     })
 }
 
-export async function getPostId(postId: number): Promise<PostEntity | null> {
+export async function getPostId(postId: number): Promise<Post | null> {
     return await postRepository.findOne({
         where: {id: postId},
         relations: ['images'],
@@ -72,8 +74,7 @@ async function compressImage(image: Express.Multer.File): Promise<Buffer> {
     return await sharp(image.buffer).resize(800).jpeg({quality: 70}).toBuffer();
 }
 
-async function createGalleryImages(gallery: Express.Multer.File[], newPost: PostEntity): Promise<AttractionImageEntity[]> {
-
+async function createGalleryImages(gallery: Express.Multer.File[], newPost: Post): Promise<AttractionImage[]> {
     if(!gallery || gallery.length === 0) {
         return [];
     }

@@ -9,7 +9,7 @@
     "migration:generate": "npx ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli migration:generate -d ./data-source.ts ./src/migrations/CreatePostAndImageTables",
     "migration:run": "npx ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli migration:run -d ./src/data-source.ts",
     "migration:revert": "npx ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli migration:revert -d ./src/data-source.ts"
-   },
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
