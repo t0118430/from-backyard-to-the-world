@@ -1,25 +1,23 @@
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { v4 as uuidv4 } from "uuid";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { v4 as uuidv4 } from 'uuid';
+import { storage } from '../firebase/config';
 
-export default async function uploadImageToFirebase(originalFileName: string, imageBuffer: Buffer): Promise<string> {
-  try {
-    // Generate a unique file name
-    const fileExtension = originalFileName.split('.').pop() || 'webp';
-    const uniqueFileName = `${uuidv4()}.${fileExtension}`;
-
-    // Get a reference to Firebase Storage
-    const storage = getStorage();
-    const storageRef = ref(storage, `images/${uniqueFileName}`);
-
-    // Upload the file
-    const snapshot = await uploadBytes(storageRef, imageBuffer);
-
-    // Get the download URL
-    const downloadURL = await getDownloadURL(snapshot.ref);
-
-    return downloadURL;
-  } catch (error) {
-    console.error("Error uploading image:", error);
-    throw new Error("Image upload failed.");
-  }
+export default async function uploadImageToFirebase(filePath: string, file: Buffer): Promise<string> {
+    console.log("Started uploadImageToFirebase");
+    try {
+        const fileName = `${uuidv4()}-${filePath}`;
+        const destination = `images/${fileName}`;
+    
+        const storageRef = ref(storage, destination);
+    
+        await uploadBytes(storageRef, file);
+    
+        const downloadUrl = await getDownloadURL(storageRef);
+    
+        return downloadUrl;
+      } catch (error) {
+        console.error('Firebase Storage Error:', error);
+        console.error('Error Code:', error.code);
+        console.error('Error Message:', error.message);
+      }
 }

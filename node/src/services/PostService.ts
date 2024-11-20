@@ -44,7 +44,13 @@ export async function createPost(
 
             const galleryImages = await createGalleryImages(gallery, newPost);
 
-            newPost.images = [mainImageEntity, ...galleryImages];
+            newPost.images = [{ id: mainImageEntity.id, url: mainImageEntity.url }]
+
+            if (!galleryImages) {
+                for(const image of galleryImages) {
+                    newPost.images.push({ id: image.id, url: image.url });
+                }                
+            }
 
             return newPost;
         } catch(error) {
@@ -78,7 +84,6 @@ async function createGalleryImages(gallery: Express.Multer.File[], newPost: Post
     if(!gallery || gallery.length === 0) {
         return [];
     }
-    console.log("depois do retun null")
     return await Promise.all(
         gallery.map(async (image) => {
         const galleryImageCompress = await compressImage(image);
